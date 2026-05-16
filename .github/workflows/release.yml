@@ -44,16 +44,15 @@ jobs:
           if (-not $autoit) { Write-Error "AutoIt3.exe not found under C:\autoit"; exit 1 }
           Write-Host "AutoIt3.exe found at: $autoit"
           try {
-            & $autoit "${{ github.workspace }}\scripts\klc_install.au3" `
-              C:\tools\msklc.exe `
-              C:\tools `
-              C:\msklc
+            $proc = Start-Process -FilePath $autoit `
+              -ArgumentList @("${{ github.workspace }}\scripts\klc_install.au3", "C:\tools\msklc.exe", "C:\tools", "C:\msklc") `
+              -Wait -PassThru -NoNewWindow
           } catch {
             Write-Host "Exception running klc_install.au3: $_"
             exit 1
           }
-          Write-Host "klc_install.au3 exit code: $LASTEXITCODE"
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          Write-Host "klc_install.au3 exit code: $($proc.ExitCode)"
+          if ($proc.ExitCode -ne 0) { exit $proc.ExitCode }
           Write-Host "Waiting 15s for installation to settle..."
           Start-Sleep -Seconds 15
           Write-Host "Checking MSKLC installation under C:\msklc..."
