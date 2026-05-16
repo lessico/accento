@@ -46,6 +46,7 @@ jobs:
             C:\tools `
             C:\msklc
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          Start-Sleep -Seconds 15
 
       - name: Compile keyboard layouts
         shell: pwsh
@@ -71,6 +72,7 @@ jobs:
               $workspace
             if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           }
+          Start-Sleep -Seconds 60
 
       - name: Package keyboards
         shell: pwsh
