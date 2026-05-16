@@ -53,6 +53,7 @@ jobs:
         run: |
           $autoit = Get-ChildItem -Path C:\autoit -Recurse -Filter AutoIt3.exe |
             Select-Object -First 1 -ExpandProperty FullName
+          if (-not $autoit) { Write-Error "AutoIt3.exe not found under C:\autoit"; exit 1 }
           $excluded = @('.github', 'scripts')
           $folders = Get-ChildItem -Path "${{ github.workspace }}" -Directory |
             Where-Object { $excluded -notcontains $_.Name }
