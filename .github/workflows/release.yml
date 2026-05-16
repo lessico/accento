@@ -1,0 +1,94 @@
+name: Build and Release Keyboards
+
+on:
+  push:
+    tags:
+      - '*'
+
+permissions:
+  id-token: write
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::881490118399:role/accento
+          aws-region: us-east-1
+
+      - name: Download tools from S3
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path C:\tools | Out-Null
+          aws s3 cp s3://accento-881490118399-us-east-1-an/msklc.exe C:\tools\msklc.exe
+          aws s3 cp s3://accento-881490118399-us-east-1-an/autoit-v3.zip C:\tools\autoit-v3.zip
+
+      - name: Extract AutoIt
+        shell: pwsh
+        run: |
+          Expand-Archive -Path C:\tools\autoit-v3.zip -DestinationPath C:\autoit
+
+      - name: Install MSKLC
+        shell: pwsh
+        run: |
+          $autoit = Get-ChildItem -Path C:\autoit -Recurse -Filter AutoIt3.exe |
+            Select-Object -First 1 -ExpandProperty FullName
+          & $autoit "${{ github.workspace }}\scripts\klc_install.au3" `
+            C:\tools\msklc.exe `
+            C:\tools `
+            C:\msklc
+          if ($LASTEXITCODE -ne 0) { exit 1 }
+
+      - name: Compile keyboard layouts
+        shell: pwsh
+        run: |
+          $autoit = Get-ChildItem -Path C:\autoit -Recurse -Filter AutoIt3.exe |
+            Select-Object -First 1 -ExpandProperty FullName
+          $excluded = @('.github', 'scripts')
+          $folders = Get-ChildItem -Path "${{ github.workspace }}" -Directory |
+            Where-Object { $excluded -notcontains $_.Name }
+          foreach ($folder in $folders) {
+            $klc = Join-Path $folder.FullName def.klc
+            if (-not (Test-Path $klc)) { continue }
+            # rooted_workspace must be exactly C:\<name> (klc_compile.au3 rejects deeper paths)
+            $workspace = "C:\$($folder.Name)"
+            New-Item -ItemType Directory -Force -Path $workspace | Out-Null
+            & $autoit "${{ github.workspace }}\scripts\klc_compile.au3" `
+              C:\msklc\MSKLC.exe `
+              $klc `
+              $workspace
+            if ($LASTEXITCODE -ne 0) { exit 1 }
+          }
+
+      - name: Package keyboards
+        shell: pwsh
+        run: |
+          $excluded = @('.github', 'scripts')
+          $folders = Get-ChildItem -Path "${{ github.workspace }}" -Directory |
+            Where-Object { $excluded -notcontains $_.Name }
+          New-Item -ItemType Directory -Force -Path C:\release | Out-Null
+          foreach ($folder in $folders) {
+            $workspace = "C:\$($folder.Name)"
+            if (-not (Test-Path $workspace)) { continue }
+            $dest = "C:\release\$($folder.Name)"
+            New-Item -ItemType Directory -Force -Path $dest | Out-Null
+            Copy-Item -Path "$workspace\*" -Destination $dest -Recurse
+          }
+          Compress-Archive -Path C:\release\* -DestinationPath C:\keyboards.zip
+
+      - name: Create GitHub release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${{ github.ref_name }}" `
+            --title "${{ github.ref_name }}" `
+            --generate-notes `
+            C:\keyboards.zip
