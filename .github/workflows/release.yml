@@ -44,8 +44,16 @@ jobs:
           & $autoit "${{ github.workspace }}\scripts\klc_install.au3" `
             C:\tools\msklc.exe `
             C:\tools `
-            C:\msklc
+            C:\msklc 2>&1
           if ($LASTEXITCODE -ne 0) { exit 1 }
+
+      - name: Upload MSKLC install log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: msklc-install-log
+          path: msklc_install.log
+          if-no-files-found: ignore
 
       - name: Compile keyboard layouts
         shell: pwsh
