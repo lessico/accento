@@ -44,7 +44,7 @@ jobs:
           & $autoit "${{ github.workspace }}\scripts\klc_install.au3" `
             C:\tools\msklc.exe `
             C:\tools `
-            C:\msklc 2>&1 out.txt
+            C:\msklc 2>&1 > out.txt
           if ($LASTEXITCODE -ne 0) { exit 1 }
 
       - name: Upload MSKLC install log
