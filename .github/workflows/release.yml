@@ -59,7 +59,11 @@ jobs:
             if (-not (Test-Path $klc)) { continue }
             # rooted_workspace must be exactly C:\<name> (klc_compile.au3 rejects deeper paths)
             $workspace = "C:\$($folder.Name)"
-            New-Item -ItemType Directory -Force -Path $workspace | Out-Null
+            if (Test-Path $workspace) {
+              Write-Error "Workspace $workspace already exists; aborting to avoid conflicts."
+              exit 1
+            }
+            New-Item -ItemType Directory -Path $workspace | Out-Null
             & $autoit "${{ github.workspace }}\scripts\klc_compile.au3" `
               C:\msklc\MSKLC.exe `
               $klc `
@@ -79,7 +83,7 @@ jobs:
             if (-not (Test-Path $workspace)) { continue }
             $dest = "C:\release\$($folder.Name)"
             New-Item -ItemType Directory -Force -Path $dest | Out-Null
-            Copy-Item -Path "$workspace\*" -Destination $dest -Recurse
+            Copy-Item -Path "$workspace\setup.exe" -Destination $dest
           }
           Compress-Archive -Path C:\release\* -DestinationPath C:\keyboards.zip
 
