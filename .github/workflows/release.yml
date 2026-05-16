@@ -47,18 +47,6 @@ jobs:
             C:\msklc
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
-      - name: Diagnose MSKLC install state
-        if: always()
-        shell: pwsh
-        run: |
-          Write-Host "C:\tools\MSKLC exists: $(Test-Path C:\tools\MSKLC)"
-          Write-Host "C:\msklc exists:       $(Test-Path C:\msklc)"
-          Write-Host "C:\msklc\MSKLC.exe:    $(Test-Path C:\msklc\MSKLC.exe)"
-          Write-Host "--- C:\tools contents ---"
-          Get-ChildItem C:\tools -ErrorAction SilentlyContinue | Select-Object Name, Length
-          Write-Host "--- C:\msklc contents ---"
-          Get-ChildItem C:\msklc -Recurse -ErrorAction SilentlyContinue | Select-Object FullName, Length
-
       - name: Compile keyboard layouts
         shell: pwsh
         run: |
