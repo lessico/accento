@@ -41,12 +41,27 @@ jobs:
         run: |
           $autoit = Get-ChildItem -Path C:\autoit -Recurse -Filter AutoIt3.exe |
             Select-Object -First 1 -ExpandProperty FullName
-          & $autoit "${{ github.workspace }}\scripts\klc_install.au3" `
-            C:\tools\msklc.exe `
-            C:\tools `
-            C:\msklc
+          if (-not $autoit) { Write-Error "AutoIt3.exe not found under C:\autoit"; exit 1 }
+          Write-Host "AutoIt3.exe found at: $autoit"
+          try {
+            & $autoit "${{ github.workspace }}\scripts\klc_install.au3" `
+              C:\tools\msklc.exe `
+              C:\tools `
+              C:\msklc
+          } catch {
+            Write-Host "Exception running klc_install.au3: $_"
+            exit 1
+          }
+          Write-Host "klc_install.au3 exit code: $LASTEXITCODE"
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          Write-Host "Waiting 15s for installation to settle..."
           Start-Sleep -Seconds 15
+          Write-Host "Checking MSKLC installation under C:\msklc..."
+          if (Test-Path C:\msklc) {
+            Get-ChildItem C:\msklc -Recurse | ForEach-Object { Write-Host $_.FullName }
+          } else {
+            Write-Host "C:\msklc does not exist"
+          }
 
       - name: Compile keyboard layouts
         shell: pwsh
@@ -54,12 +69,17 @@ jobs:
           $autoit = Get-ChildItem -Path C:\autoit -Recurse -Filter AutoIt3.exe |
             Select-Object -First 1 -ExpandProperty FullName
           if (-not $autoit) { Write-Error "AutoIt3.exe not found under C:\autoit"; exit 1 }
+          Write-Host "AutoIt3.exe found at: $autoit"
           $excluded = @('.github', 'scripts')
           $folders = Get-ChildItem -Path "${{ github.workspace }}" -Directory |
             Where-Object { $excluded -notcontains $_.Name }
+          Write-Host "Keyboard folders found: $($folders.Name -join ', ')"
           foreach ($folder in $folders) {
             $klc = Join-Path $folder.FullName def.klc
-            if (-not (Test-Path $klc)) { continue }
+            if (-not (Test-Path $klc)) {
+              Write-Host "No def.klc in $($folder.Name), skipping."
+              continue
+            }
             # rooted_workspace must be exactly C:\<name> (klc_compile.au3 rejects deeper paths)
             $workspace = "C:\$($folder.Name)"
             if (Test-Path $workspace) {
@@ -67,13 +87,28 @@ jobs:
               exit 1
             }
             New-Item -ItemType Directory -Path $workspace | Out-Null
-            & $autoit "${{ github.workspace }}\scripts\klc_compile.au3" `
-              C:\msklc\MSKLC.exe `
-              $klc `
-              $workspace
+            Write-Host "Compiling $($folder.Name): $klc -> $workspace"
+            try {
+              & $autoit "${{ github.workspace }}\scripts\klc_compile.au3" `
+                C:\msklc\MSKLC.exe `
+                $klc `
+                $workspace
+            } catch {
+              Write-Host "Exception running klc_compile.au3: $_"
+              exit 1
+            }
+            Write-Host "klc_compile.au3 exit code: $LASTEXITCODE"
             if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           }
+          Write-Host "All folders processed. Starting 60s sleep..."
           Start-Sleep -Seconds 60
+          Write-Host "Sleep complete. Workspace contents:"
+          foreach ($folder in $folders) {
+            $workspace = "C:\$($folder.Name)"
+            Write-Host "--- $workspace ---"
+            Get-ChildItem $workspace -ErrorAction SilentlyContinue |
+              ForEach-Object { Write-Host "  $($_.Name) ($($_.Length) bytes)" }
+          }
 
       - name: Package keyboards
         shell: pwsh
