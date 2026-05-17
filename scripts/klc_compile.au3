@@ -54,27 +54,32 @@ EndFunc
 
 Local $main_wnd = WinWaitActive("Keyboard Layout Creator 1.4", "", $TIMEOUT)
 If $main_wnd = 0 Then Exit $EXIT_TIMEOUT_MAIN_WND
+Sleep(2000)
 
 ; Open the KLC file
-Sleep(2000)
 ControlSend($main_wnd, "", "", "^o")
 If WinWaitNotActive($main_wnd, "", $TIMEOUT) = 0 Then Exit $EXIT_TIMEOUT_OPEN_INACTIVE
 If WinWaitActive($dialog_id, "", $TIMEOUT) = 0 Then Exit $EXIT_TIMEOUT_OPEN_DIALOG
+Sleep(2000)
 ControlSetText($dialog_id, "", "[CLASS:Edit; INSTANCE:1]", $klc_to_compile)
 ControlSend($dialog_id, "", "", "{ENTER}")
 If WinWaitActive($main_wnd, "", $TIMEOUT) = 0 Then Exit $EXIT_TIMEOUT_MAIN_AFTER_OPEN
+Sleep(2000)
 
 ; Build and verify
 ControlSend($main_wnd, "", "", "!p")
 ControlSend($main_wnd, "", "", "b")
 If WinWaitNotActive($main_wnd, "", $TIMEOUT) = 0 Then Exit $EXIT_TIMEOUT_VERIFY_INACTIVE
 If WinWaitActive($dialog_id, "", $TIMEOUT) = 0 Then Exit $EXIT_TIMEOUT_VERIFY_DIALOG
+Sleep(2000)
 If Not StringInStr(WinGetText($dialog_id), "Verification succeeded,") Then Exit $EXIT_VERIFICATION_FAILED
 ControlClick($dialog_id, "", "[CLASS:Button; INSTANCE:2]")
 If WinWaitActive($main_wnd, "", $TIMEOUT) = 0 Then Exit $EXIT_TIMEOUT_MAIN_AFTER_VERIFY
+Sleep(2000)
 
 If WinWaitNotActive($main_wnd, "", $TIMEOUT) = 0 Then Exit $EXIT_TIMEOUT_BUILD_INACTIVE
 If WinWaitActive($dialog_id, "", $TIMEOUT) = 0 Then Exit $EXIT_TIMEOUT_BUILD_DIALOG
+Sleep(2000)
 If Not StringInStr(WinGetText($dialog_id), "The Windows Installer package was built successfully at") Then Exit $EXIT_BUILD_FAILED
 ControlSend($dialog_id, "", "", "n")
 
