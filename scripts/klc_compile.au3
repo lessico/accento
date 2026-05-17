@@ -35,6 +35,7 @@ Func Cleanup()
     ProcessClose($msklc_pid)
     DirRemove($msklc_output, 1)
 EndFunc
+Exit 0
 
 Local $main_wnd = WinWaitActive("Keyboard Layout Creator 1.4")
 Const $dialog_id = "[CLASS:#32770]"
