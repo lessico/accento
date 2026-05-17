@@ -103,6 +103,7 @@ jobs:
             }
             Get-Content C:\autoit_compile_stdout.txt -ErrorAction SilentlyContinue | Write-Host
             Get-Content C:\autoit_compile_stderr.txt -ErrorAction SilentlyContinue | Write-Host
+            Write-Host "autoit_debug.txt exists: $(Test-Path C:\autoit_debug.txt)"
             Get-Content C:\autoit_debug.txt -ErrorAction SilentlyContinue | Write-Host
             Write-Host "klc_compile.au3 exit code: $($proc.ExitCode)"
             if ($proc.ExitCode -ne 0) { exit $proc.ExitCode }

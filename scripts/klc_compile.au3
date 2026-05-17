@@ -49,14 +49,18 @@ EndFunc
 
 ControlClick($main_wnd, "", "[NAME:btnCurDir]")
 WaitForDialog()
-Local $dbg_log = FileOpen("C:\autoit_debug.txt", 1)
+Local $dbg_log = FileOpen("C:\autoit_debug.txt", 2)
+FileWriteLine($dbg_log, "Debug started")
+FileWriteLine($dbg_log, "Dialog class list: " & WinGetClassList($dialog_id))
 Local $dbg_i = 0
 While True
+    Sleep(500)
     Local $dbg_item = ControlTreeView($dialog_id, "", "[CLASS:SysTreeView32; INSTANCE:1]", "GetText", "#0|#" & $dbg_i)
     If @error Then ExitLoop
     FileWriteLine($dbg_log, "Root child " & $dbg_i & ": " & $dbg_item)
     $dbg_i += 1
 WEnd
+FileWriteLine($dbg_log, "Tree dump complete")
 FileClose($dbg_log)
 Local $this_pc_idx = GetControlViewIndex("#0", "Computer")
 If $this_pc_idx = -1 Then Exit 14
