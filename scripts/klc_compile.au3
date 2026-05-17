@@ -6,9 +6,9 @@ Local $klc_to_compile = $CmdLine[2]
 Local $rooted_workspace = $CmdLine[3]
 
 If Not StringInStr($rooted_workspace, ":\") = 2 Then Exit 1
-ExitIfError("Invalid arguments given to StringInStr for parsing rooted workspace.")
+ExitIfError("Invalid arguments given to StringInStr for parsing rooted workspace.", 2)
 If Not StringInStr($rooted_workspace, "\", 0, 1, 4) = 0 Then Exit 1
-ExitIfError("Invalid arguments given to StringInStr for parsing rooted workspace.")
+ExitIfError("Invalid arguments given to StringInStr for parsing rooted workspace.", 2)
 Local $drive_letter = StringLeft($rooted_workspace, 1)
 Local $workspace = StringMid($rooted_workspace, 4)
 
@@ -52,19 +52,19 @@ WaitForDialog()
 Local $this_pc_idx = GetControlViewIndex("#0", "This PC")
 If $this_pc_idx = -1 Then Exit 1
 ControlTreeView($dialog_id, "", "[CLASS:SysTreeView32; INSTANCE:1]", "Expand", "#0|#" & $this_pc_idx)
-ExitIfError("Could not expand 'This PC' node.")
+ExitIfError("Could not expand 'This PC' node.", 3)
 Sleep(500)
 
 Local $drive_idx = GetControlViewIndex("#0|#" & $this_pc_idx, "(" & $drive_letter & ":)")
 If $drive_idx = -1 Then Exit 1
 ControlTreeView($dialog_id, "", "[CLASS:SysTreeView32; INSTANCE:1]", "Expand", "#0|#" & $this_pc_idx & "|#" & $drive_idx)
-ExitIfError("Could not expand drive within 'This PC' node.")
+ExitIfError("Could not expand drive within 'This PC' node.", 4)
 Sleep(500)
 
 Local $workspace_idx = GetControlViewIndex("#0|#" & $this_pc_idx & "|#" & $drive_idx, $workspace)
 If $workspace_idx = -1 Then Exit 1
 ControlTreeView($dialog_id, "", "[CLASS:SysTreeView32; INSTANCE:1]", "Select", "#0|#" & $this_pc_idx & "|#" & $drive_idx & "|#" & $workspace_idx)
-ExitIfError("Could not select the workspace directory")
+ExitIfError("Could not select the workspace directory"5, )
 Sleep(500)
 
 ControlClick($dialog_id, "", "[CLASS:Button; INSTANCE:2]")
