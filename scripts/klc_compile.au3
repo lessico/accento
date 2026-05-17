@@ -51,7 +51,9 @@ ControlClick($main_wnd, "", "[NAME:btnCurDir]")
 WaitForDialog()
 Local $dbg_log = FileOpen("C:\autoit_debug.txt", 2)
 FileWriteLine($dbg_log, "Debug started")
-FileWriteLine($dbg_log, "Dialog class list: " & WinGetClassList($dialog_id))
+FileWriteLine($dbg_log, "Root #0 text: " & ControlTreeView($dialog_id, "", "[CLASS:SysTreeView32; INSTANCE:1]", "GetText", "#0"))
+ControlTreeView($dialog_id, "", "[CLASS:SysTreeView32; INSTANCE:1]", "Expand", "#0")
+Sleep(1000)
 Local $dbg_i = 0
 While True
     Sleep(500)
