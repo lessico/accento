@@ -88,16 +88,15 @@ jobs:
             New-Item -ItemType Directory -Path $workspace | Out-Null
             Write-Host "Compiling $($folder.Name): $klc -> $workspace"
             try {
-              & $autoit "${{ github.workspace }}\scripts\klc_compile.au3" `
-                C:\msklc\MSKLC.exe `
-                $klc `
-                $workspace
+              $proc = Start-Process -FilePath $autoit `
+                -ArgumentList @("${{ github.workspace }}\scripts\klc_compile.au3", "C:\msklc\MSKLC.exe", $klc, $workspace) `
+                -Wait -PassThru -NoNewWindow
             } catch {
               Write-Host "Exception running klc_compile.au3: $_"
               exit 1
             }
-            Write-Host "klc_compile.au3 exit code: $LASTEXITCODE"
-            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+            Write-Host "klc_compile.au3 exit code: $($proc.ExitCode)"
+            if ($proc.ExitCode -ne 0) { exit $proc.ExitCode }
           }
           Write-Host "All folders processed. Starting 60s sleep..."
           Start-Sleep -Seconds 60
