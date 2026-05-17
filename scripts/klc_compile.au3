@@ -1,13 +1,13 @@
 #include "shared.au3"
 
-If Not $CmdLine[0] = 3 Then Exit 1
+If Not $CmdLine[0] = 3 Then Exit 10
 Local $exe_location = $CmdLine[1]
 Local $klc_to_compile = $CmdLine[2]
 Local $rooted_workspace = $CmdLine[3]
 
-If Not StringInStr($rooted_workspace, ":\") = 2 Then Exit 1
+If Not StringInStr($rooted_workspace, ":\") = 2 Then Exit 11
 ExitIfError("Invalid arguments given to StringInStr for parsing rooted workspace.", 2)
-If Not StringInStr($rooted_workspace, "\", 0, 1, 4) = 0 Then Exit 1
+If Not StringInStr($rooted_workspace, "\", 0, 1, 4) = 0 Then Exit 12
 ExitIfError("Invalid arguments given to StringInStr for parsing rooted workspace.", 2)
 Local $drive_letter = StringLeft($rooted_workspace, 1)
 Local $workspace = StringMid($rooted_workspace, 4)
@@ -30,7 +30,7 @@ EndFunc
 
 ; Set the working directory for the compilation output
 If Not FileExists($rooted_workspace) Then
-    If Not DirCreate($rooted_workspace) Then Exit 1
+    If Not DirCreate($rooted_workspace) Then Exit 13
 EndIf
 
 Func GetControlViewIndex($prefix, $target)
@@ -50,19 +50,19 @@ EndFunc
 ControlClick($main_wnd, "", "[NAME:btnCurDir]")
 WaitForDialog()
 Local $this_pc_idx = GetControlViewIndex("#0", "This PC")
-If $this_pc_idx = -1 Then Exit 1
+If $this_pc_idx = -1 Then Exit 14
 ControlTreeView($dialog_id, "", "[CLASS:SysTreeView32; INSTANCE:1]", "Expand", "#0|#" & $this_pc_idx)
 ExitIfError("Could not expand 'This PC' node.", 3)
 Sleep(500)
 
 Local $drive_idx = GetControlViewIndex("#0|#" & $this_pc_idx, "(" & $drive_letter & ":)")
-If $drive_idx = -1 Then Exit 1
+If $drive_idx = -1 Then Exit 15
 ControlTreeView($dialog_id, "", "[CLASS:SysTreeView32; INSTANCE:1]", "Expand", "#0|#" & $this_pc_idx & "|#" & $drive_idx)
 ExitIfError("Could not expand drive within 'This PC' node.", 4)
 Sleep(500)
 
 Local $workspace_idx = GetControlViewIndex("#0|#" & $this_pc_idx & "|#" & $drive_idx, $workspace)
-If $workspace_idx = -1 Then Exit 1
+If $workspace_idx = -1 Then Exit 16
 ControlTreeView($dialog_id, "", "[CLASS:SysTreeView32; INSTANCE:1]", "Select", "#0|#" & $this_pc_idx & "|#" & $drive_idx & "|#" & $workspace_idx)
 ExitIfError("Could not select the workspace directory"5, )
 Sleep(500)
@@ -83,7 +83,7 @@ ControlSend($main_wnd, "", "", "b")
 WaitForDialog()
 Local $verification_text = WinGetText($dialog_id)
 Local $expected_verification_text = "Verification succeeded."
-If Not StringInStr($verification_text, $expected_verification_text) Then Exit 1
+If Not StringInStr($verification_text, $expected_verification_text) Then Exit 17
 ControlClick($dialog_id, "", "[CLASS:Button; INSTANCE:1]")
 WinWaitActive($main_wnd)
 
@@ -91,5 +91,5 @@ WinWaitActive($main_wnd)
 WaitForDialog()
 Local $build_text = WinGetText($dialog_id)
 Local $expected_build_text = "The Windows Installer package was built successfully at"
-If Not StringInStr($build_text, $expected_build_text) Then Exit 1
+If Not StringInStr($build_text, $expected_build_text) Then Exit 18
 ControlSend($dialog_id, "", "", "n")
