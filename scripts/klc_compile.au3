@@ -8,6 +8,18 @@ Const $EXIT_DEST_EXISTS = 5
 Const $EXIT_VERIFICATION_FAILED = 6
 Const $EXIT_BUILD_FAILED = 7
 Const $EXIT_MOVE_FAILED = 8
+Const $EXIT_TIMEOUT_MAIN_WND = 9
+Const $EXIT_TIMEOUT_OPEN_INACTIVE = 10
+Const $EXIT_TIMEOUT_OPEN_DIALOG = 11
+Const $EXIT_TIMEOUT_MAIN_AFTER_OPEN = 12
+Const $EXIT_TIMEOUT_VERIFY_INACTIVE = 13
+Const $EXIT_TIMEOUT_VERIFY_DIALOG = 14
+Const $EXIT_TIMEOUT_MAIN_AFTER_VERIFY = 15
+Const $EXIT_TIMEOUT_BUILD_INACTIVE = 16
+Const $EXIT_TIMEOUT_BUILD_DIALOG = 17
+
+Const $TIMEOUT = 60
+Const $dialog_id = "[CLASS:#32770]"
 
 If Not $CmdLine[0] = 3 Then Exit $EXIT_USAGE_ERROR
 
@@ -40,30 +52,28 @@ Func Cleanup()
     DirRemove($msklc_output, 1)
 EndFunc
 
-Local $main_wnd = WinWaitActive("Keyboard Layout Creator 1.4")
-Const $dialog_id = "[CLASS:#32770]"
-
-Func WaitForDialog()
-    WinWaitNotActive($main_wnd)
-    WinWaitActive($dialog_id)
-EndFunc
+Local $main_wnd = WinWaitActive("Keyboard Layout Creator 1.4", "", $TIMEOUT)
+If $main_wnd = 0 Then Exit $EXIT_TIMEOUT_MAIN_WND
 
 ; Open the KLC file
 ControlSend($main_wnd, "", "", "^o")
-WaitForDialog()
+If WinWaitNotActive($main_wnd, "", $TIMEOUT) = 0 Then Exit $EXIT_TIMEOUT_OPEN_INACTIVE
+If WinWaitActive($dialog_id, "", $TIMEOUT) = 0 Then Exit $EXIT_TIMEOUT_OPEN_DIALOG
 ControlSetText($dialog_id, "", "[CLASS:Edit; INSTANCE:1]", $klc_to_compile)
 ControlSend($dialog_id, "", "", "{ENTER}")
-WinWaitActive($main_wnd)
+If WinWaitActive($main_wnd, "", $TIMEOUT) = 0 Then Exit $EXIT_TIMEOUT_MAIN_AFTER_OPEN
 
 ; Build and verify
 ControlSend($main_wnd, "", "", "!p")
 ControlSend($main_wnd, "", "", "b")
-WaitForDialog()
+If WinWaitNotActive($main_wnd, "", $TIMEOUT) = 0 Then Exit $EXIT_TIMEOUT_VERIFY_INACTIVE
+If WinWaitActive($dialog_id, "", $TIMEOUT) = 0 Then Exit $EXIT_TIMEOUT_VERIFY_DIALOG
 If Not StringInStr(WinGetText($dialog_id), "Verification succeeded,") Then Exit $EXIT_VERIFICATION_FAILED
 ControlClick($dialog_id, "", "[CLASS:Button; INSTANCE:2]")
-WinWaitActive($main_wnd)
+If WinWaitActive($main_wnd, "", $TIMEOUT) = 0 Then Exit $EXIT_TIMEOUT_MAIN_AFTER_VERIFY
 
-WaitForDialog()
+If WinWaitNotActive($main_wnd, "", $TIMEOUT) = 0 Then Exit $EXIT_TIMEOUT_BUILD_INACTIVE
+If WinWaitActive($dialog_id, "", $TIMEOUT) = 0 Then Exit $EXIT_TIMEOUT_BUILD_DIALOG
 If Not StringInStr(WinGetText($dialog_id), "The Windows Installer package was built successfully at") Then Exit $EXIT_BUILD_FAILED
 ControlSend($dialog_id, "", "", "n")
 

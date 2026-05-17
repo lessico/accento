@@ -52,7 +52,7 @@ jobs:
       - name: Compile keyboard layouts
         shell: pwsh
         run: |
-          $autoit = "C:\autoit\install\autoit3.exe"
+          $autoit = "C:\autoit\install\AutoIt3.exe"
           if (-not (Test-Path $autoit)) { Write-Error "AutoIt3.exe not found at $autoit"; exit 1 }
           $excluded = @('.github', 'scripts')
           $folders = Get-ChildItem -Path "${{ github.workspace }}" -Directory |
