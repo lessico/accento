@@ -46,11 +46,15 @@ jobs:
           try {
             $proc = Start-Process -FilePath $autoit `
               -ArgumentList @("${{ github.workspace }}\scripts\klc_install.au3", "C:\tools\msklc.exe", "C:\tools", "C:\msklc") `
-              -Wait -PassThru -NoNewWindow
+              -Wait -PassThru -NoNewWindow `
+              -RedirectStandardOutput C:\autoit_install_stdout.txt `
+              -RedirectStandardError  C:\autoit_install_stderr.txt
           } catch {
             Write-Host "Exception running klc_install.au3: $_"
             exit 1
           }
+          Get-Content C:\autoit_install_stdout.txt -ErrorAction SilentlyContinue | Write-Host
+          Get-Content C:\autoit_install_stderr.txt -ErrorAction SilentlyContinue | Write-Host
           Write-Host "klc_install.au3 exit code: $($proc.ExitCode)"
           if ($proc.ExitCode -ne 0) { exit $proc.ExitCode }
           Write-Host "Waiting 15s for installation to settle..."
@@ -90,11 +94,15 @@ jobs:
             try {
               $proc = Start-Process -FilePath $autoit `
                 -ArgumentList @("${{ github.workspace }}\scripts\klc_compile.au3", "C:\msklc\MSKLC.exe", $klc, $workspace) `
-                -Wait -PassThru -NoNewWindow
+                -Wait -PassThru -NoNewWindow `
+                -RedirectStandardOutput C:\autoit_compile_stdout.txt `
+                -RedirectStandardError  C:\autoit_compile_stderr.txt
             } catch {
               Write-Host "Exception running klc_compile.au3: $_"
               exit 1
             }
+            Get-Content C:\autoit_compile_stdout.txt -ErrorAction SilentlyContinue | Write-Host
+            Get-Content C:\autoit_compile_stderr.txt -ErrorAction SilentlyContinue | Write-Host
             Write-Host "klc_compile.au3 exit code: $($proc.ExitCode)"
             if ($proc.ExitCode -ne 0) { exit $proc.ExitCode }
           }
