@@ -1,5 +1,12 @@
 #include-once
 
+Func ExitIfError($msg, $code = 1)
+    If @error Then
+        ConsoleWriteError($msg & @CRLF)
+        Exit $code
+    EndIf
+EndFunc
+
 Func RunFromLocalFolder($location, $code = 1)
     Local $last_separator = StringInStr($exe_location, "\", 0, -1)
     ExitIfError("Invalid arguments given to StringInStr for parsing exe location.")
