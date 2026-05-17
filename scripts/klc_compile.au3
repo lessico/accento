@@ -19,10 +19,19 @@ Local $kbd_name = $parts[2]
 Local $msklc_output = @MyDocumentsDir & "\" & $kbd_name
 If FileExists($msklc_output) Then Exit 4
 
+Local $log = FileOpen("C:\autoit_debug.txt", 2)
+FileWriteLine($log, "MyDocumentsDir:  " & @MyDocumentsDir)
+FileWriteLine($log, "kbd_name:        " & $kbd_name)
+FileWriteLine($log, "msklc_output:    " & $msklc_output)
+FileWriteLine($log, "workspace:       " & $workspace)
+FileWriteLine($log, "klc_to_compile:  " & $klc_to_compile)
+
 Local $msklc_pid = RunFromLocalFolder($exe_location)
 OnAutoItExitRegister("Cleanup")
 
 Func Cleanup()
+    FileWriteLine($log, "Cleanup running")
+    FileClose($log)
     ProcessClose($msklc_pid)
     DirRemove($msklc_output, 1)
 EndFunc
@@ -43,17 +52,34 @@ ControlSend($dialog_id, "", "", "{ENTER}")
 WinWaitActive($main_wnd)
 
 ; Build and verify
+FileWriteLine($log, "Starting build")
 ControlSend($main_wnd, "", "", "!p")
 ControlSend($main_wnd, "", "", "b")
 WaitForDialog()
-If Not StringInStr(WinGetText($dialog_id), "Verification succeeded,") Then Exit 5
+Local $verification_text = WinGetText($dialog_id)
+FileWriteLine($log, "Verification dialog text: " & $verification_text)
+If Not StringInStr($verification_text, "Verification succeeded,") Then Exit 5
 ControlClick($dialog_id, "", "[CLASS:Button; INSTANCE:2]")
 WinWaitActive($main_wnd)
 
 WaitForDialog()
-If Not StringInStr(WinGetText($dialog_id), "The Windows Installer package was built successfully at") Then Exit 6
+Local $build_text = WinGetText($dialog_id)
+FileWriteLine($log, "Build dialog text: " & $build_text)
+If Not StringInStr($build_text, "The Windows Installer package was built successfully at") Then Exit 6
 ControlSend($dialog_id, "", "", "n")
 
 ; Move the build output folder from Documents to the provided workspace path
 Sleep(1000)
-If Not DirMove($msklc_output, $workspace, 1) Then Exit 7
+FileWriteLine($log, "msklc_output exists after build: " & FileExists($msklc_output))
+Local $search = FileFindFirstFile($msklc_output & "\*")
+If $search <> -1 Then
+    While True
+        Local $found = FileFindNextFile($search)
+        If @error Then ExitLoop
+        FileWriteLine($log, "  found: " & $found)
+    WEnd
+    FileClose($search)
+EndIf
+Local $move_result = DirMove($msklc_output, $workspace, 1)
+FileWriteLine($log, "DirMove result: " & $move_result)
+If Not $move_result Then Exit 7
