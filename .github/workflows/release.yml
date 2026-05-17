@@ -88,7 +88,8 @@ jobs:
           $excluded = @('.github', 'scripts')
           $folders = Get-ChildItem -Path "${{ github.workspace }}" -Directory |
             Where-Object { $excluded -notcontains $_.Name }
-          New-Item -ItemType Directory -Force -Path C:\release | Out-Null
+          if (Test-Path C:\release) { Write-Error "Release directory C:\release already exists; aborting."; exit 1 }
+          New-Item -ItemType Directory -Path C:\release | Out-Null
           foreach ($folder in $folders) {
             $folder_workspace = "C:\workspace\$($folder.Name)"
             if (-not (Test-Path $folder_workspace)) {
@@ -101,7 +102,7 @@ jobs:
               exit 1
             }
             $dest = "C:\release\$($folder.Name)"
-            New-Item -ItemType Directory -Force -Path $dest | Out-Null
+            New-Item -ItemType Directory -Path $dest | Out-Null
             Copy-Item -Path $setup -Destination $dest
           }
           Compress-Archive -Path C:\release\* -DestinationPath C:\keyboards.zip
