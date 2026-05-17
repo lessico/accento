@@ -49,6 +49,13 @@ EndFunc
 
 ControlClick($main_wnd, "", "[NAME:btnCurDir]")
 WaitForDialog()
+Local $dbg_i = 0
+While True
+    Local $dbg_item = ControlTreeView($dialog_id, "", "[CLASS:SysTreeView32; INSTANCE:1]", "GetText", "#0|#" & $dbg_i)
+    If @error Then ExitLoop
+    ConsoleWrite("Root child " & $dbg_i & ": " & $dbg_item & @CRLF)
+    $dbg_i += 1
+WEnd
 Local $this_pc_idx = GetControlViewIndex("#0", "This PC")
 If $this_pc_idx = -1 Then Exit 14
 ControlTreeView($dialog_id, "", "[CLASS:SysTreeView32; INSTANCE:1]", "Expand", "#0|#" & $this_pc_idx)
