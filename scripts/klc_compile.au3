@@ -49,39 +49,13 @@ EndFunc
 
 ControlClick($main_wnd, "", "[NAME:btnCurDir]")
 WaitForDialog()
-Local $dbg_log = FileOpen("C:\autoit_debug.txt", 2)
-FileWriteLine($dbg_log, "Debug started")
-FileWriteLine($dbg_log, "Root #0 text: " & ControlTreeView($dialog_id, "", "[CLASS:SysTreeView32; INSTANCE:1]", "GetText", "#0"))
-ControlTreeView($dialog_id, "", "[CLASS:SysTreeView32; INSTANCE:1]", "Expand", "#0")
+; Use BFFM_SETSELECTIONW (WM_USER + 103) to navigate the folder browser to
+; the target path without relying on tree view navigation, which varies across
+; Windows versions.
+Const $BFFM_SETSELECTIONW = 0x467
+Local $dlg_hwnd = WinGetHandle($dialog_id)
+DllCall("user32.dll", "lresult", "SendMessageW", "hwnd", $dlg_hwnd, "uint", $BFFM_SETSELECTIONW, "wparam", 1, "wstr", $rooted_workspace)
 Sleep(1000)
-Local $dbg_i = 0
-While True
-    Sleep(500)
-    Local $dbg_item = ControlTreeView($dialog_id, "", "[CLASS:SysTreeView32; INSTANCE:1]", "GetText", "#0|#" & $dbg_i)
-    If @error Then ExitLoop
-    FileWriteLine($dbg_log, "Root child " & $dbg_i & ": " & $dbg_item)
-    $dbg_i += 1
-WEnd
-FileWriteLine($dbg_log, "Tree dump complete")
-FileClose($dbg_log)
-Local $this_pc_idx = GetControlViewIndex("#0", "Computer")
-If $this_pc_idx = -1 Then Exit 14
-ControlTreeView($dialog_id, "", "[CLASS:SysTreeView32; INSTANCE:1]", "Expand", "#0|#" & $this_pc_idx)
-ExitIfError("Could not expand 'This PC' node.", 3)
-Sleep(500)
-
-Local $drive_idx = GetControlViewIndex("#0|#" & $this_pc_idx, "(" & $drive_letter & ":)")
-If $drive_idx = -1 Then Exit 15
-ControlTreeView($dialog_id, "", "[CLASS:SysTreeView32; INSTANCE:1]", "Expand", "#0|#" & $this_pc_idx & "|#" & $drive_idx)
-ExitIfError("Could not expand drive within 'This PC' node.", 4)
-Sleep(500)
-
-Local $workspace_idx = GetControlViewIndex("#0|#" & $this_pc_idx & "|#" & $drive_idx, $workspace)
-If $workspace_idx = -1 Then Exit 16
-ControlTreeView($dialog_id, "", "[CLASS:SysTreeView32; INSTANCE:1]", "Select", "#0|#" & $this_pc_idx & "|#" & $drive_idx & "|#" & $workspace_idx)
-ExitIfError("Could not select the workspace directory"5, )
-Sleep(500)
-
 ControlClick($dialog_id, "", "[CLASS:Button; INSTANCE:2]")
 WinWaitActive($main_wnd)
 
