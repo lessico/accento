@@ -39,7 +39,7 @@ jobs:
       - name: Install MSKLC
         shell: pwsh
         run: |
-          $autoit = "C:\autoit\install\autoit3.exe"
+          $autoit = "C:\autoit\install\AutoIt3.exe"
           if (-not (Test-Path $autoit)) { Write-Error "AutoIt3.exe not found at $autoit"; exit 1 }
           $proc = Start-Process -FilePath $autoit `
             -ArgumentList @("${{ github.workspace }}\scripts\klc_install.au3", "C:\tools\msklc.exe", "C:\tools", "C:\msklc") `
