@@ -77,6 +77,14 @@ jobs:
           $folders = Get-ChildItem -Path "${{ github.workspace }}" -Directory |
             Where-Object { $excluded -notcontains $_.Name }
           Write-Host "Keyboard folders found: $($folders.Name -join ', ')"
+
+          $workspace = "C:\workspace"
+          if (Test-Path $workspace) {
+            Write-Error "Workspace $workspace already exists; aborting to avoid conflicts."
+            exit 1
+          }
+          New-Item -ItemType Directory -Path $workspace | Out-Null
+
           foreach ($folder in $folders) {
             $klc = Join-Path $folder.FullName def.klc
             if (-not (Test-Path $klc)) {
@@ -84,12 +92,6 @@ jobs:
               continue
             }
             # rooted_workspace must be exactly C:\<name> (klc_compile.au3 rejects deeper paths)
-            $workspace = "C:\$($folder.Name)"
-            if (Test-Path $workspace) {
-              Write-Error "Workspace $workspace already exists; aborting to avoid conflicts."
-              exit 1
-            }
-            New-Item -ItemType Directory -Path $workspace | Out-Null
             Write-Host "Compiling $($folder.Name): $klc -> $workspace"
             try {
               $proc = Start-Process -FilePath $autoit `
