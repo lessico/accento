@@ -56,6 +56,7 @@ Local $main_wnd = WinWaitActive("Keyboard Layout Creator 1.4", "", $TIMEOUT)
 If $main_wnd = 0 Then Exit $EXIT_TIMEOUT_MAIN_WND
 
 ; Open the KLC file
+Sleep(2000)
 ControlSend($main_wnd, "", "", "^o")
 If WinWaitNotActive($main_wnd, "", $TIMEOUT) = 0 Then Exit $EXIT_TIMEOUT_OPEN_INACTIVE
 If WinWaitActive($dialog_id, "", $TIMEOUT) = 0 Then Exit $EXIT_TIMEOUT_OPEN_DIALOG
