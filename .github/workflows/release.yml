@@ -39,40 +39,21 @@ jobs:
       - name: Install MSKLC
         shell: pwsh
         run: |
-          $autoit = Get-ChildItem -Path C:\autoit -Recurse -Filter AutoIt3.exe |
-            Select-Object -First 1 -ExpandProperty FullName
-          if (-not $autoit) { Write-Error "AutoIt3.exe not found under C:\autoit"; exit 1 }
-          Write-Host "AutoIt3.exe found at: $autoit"
-          try {
-            $proc = Start-Process -FilePath $autoit `
-              -ArgumentList @("${{ github.workspace }}\scripts\klc_install.au3", "C:\tools\msklc.exe", "C:\tools", "C:\msklc") `
-              -Wait -PassThru -NoNewWindow `
-              -RedirectStandardOutput C:\autoit_install_stdout.txt `
-              -RedirectStandardError  C:\autoit_install_stderr.txt
-          } catch {
-            Write-Host "Exception running klc_install.au3: $_"
-            exit 1
-          }
-          Get-Content C:\autoit_install_stdout.txt -ErrorAction SilentlyContinue | Write-Host
-          Get-Content C:\autoit_install_stderr.txt -ErrorAction SilentlyContinue | Write-Host
+          $autoit = "C:\autoit\install\autoit3.exe"
+          if (-not (Test-Path $autoit)) { Write-Error "AutoIt3.exe not found at $autoit"; exit 1 }
+          $proc = Start-Process -FilePath $autoit `
+            -ArgumentList @("${{ github.workspace }}\scripts\klc_install.au3", "C:\tools\msklc.exe", "C:\tools", "C:\msklc") `
+            -Wait -PassThru -NoNewWindow
           Write-Host "klc_install.au3 exit code: $($proc.ExitCode)"
           if ($proc.ExitCode -ne 0) { exit $proc.ExitCode }
-          Write-Host "Waiting 15s for installation to settle..."
-          Start-Sleep -Seconds 15
-          Write-Host "Checking MSKLC installation under C:\msklc..."
-          if (Test-Path C:\msklc) {
-            Get-ChildItem C:\msklc -Recurse | ForEach-Object { Write-Host $_.FullName }
-          } else {
-            Write-Host "C:\msklc does not exist"
-          }
+          Start-Sleep -Seconds 5
+          if (-not (Test-Path C:\msklc)) { Write-Error "MSKLC installation directory C:\msklc not found"; exit 1 }
 
       - name: Compile keyboard layouts
         shell: pwsh
         run: |
-          $autoit = Get-ChildItem -Path C:\autoit -Recurse -Filter AutoIt3.exe |
-            Select-Object -First 1 -ExpandProperty FullName
-          if (-not $autoit) { Write-Error "AutoIt3.exe not found under C:\autoit"; exit 1 }
-          Write-Host "AutoIt3.exe found at: $autoit"
+          $autoit = "C:\autoit\install\autoit3.exe"
+          if (-not (Test-Path $autoit)) { Write-Error "AutoIt3.exe not found at $autoit"; exit 1 }
           $excluded = @('.github', 'scripts')
           $folders = Get-ChildItem -Path "${{ github.workspace }}" -Directory |
             Where-Object { $excluded -notcontains $_.Name }
@@ -88,37 +69,18 @@ jobs:
           foreach ($folder in $folders) {
             $klc = Join-Path $folder.FullName def.klc
             if (-not (Test-Path $klc)) {
-              Write-Host "No def.klc in $($folder.Name), skipping."
-              continue
-            }
-            # rooted_workspace must be exactly C:\<name> (klc_compile.au3 rejects deeper paths)
-            Write-Host "Compiling $($folder.Name): $klc -> $workspace"
-            try {
-              $proc = Start-Process -FilePath $autoit `
-                -ArgumentList @("${{ github.workspace }}\scripts\klc_compile.au3", "C:\msklc\MSKLC.exe", $klc, $workspace) `
-                -Wait -PassThru -NoNewWindow `
-                -RedirectStandardOutput C:\autoit_compile_stdout.txt `
-                -RedirectStandardError  C:\autoit_compile_stderr.txt
-            } catch {
-              Write-Host "Exception running klc_compile.au3: $_"
+              Write-Error "No def.klc in $($folder.Name) but expected to be keyboard definition"
               exit 1
             }
-            Get-Content C:\autoit_compile_stdout.txt -ErrorAction SilentlyContinue | Write-Host
-            Get-Content C:\autoit_compile_stderr.txt -ErrorAction SilentlyContinue | Write-Host
-            Write-Host "autoit_debug.txt exists: $(Test-Path C:\autoit_debug.txt)"
-            Get-Content C:\autoit_debug.txt -ErrorAction SilentlyContinue | Write-Host
+            Write-Host "Compiling $($folder.Name)"
+            $proc = Start-Process -FilePath $autoit `
+              -ArgumentList @("${{ github.workspace }}\scripts\klc_compile.au3", "C:\msklc\MSKLC.exe", $klc, $workspace) `
+              -Wait -PassThru -NoNewWindow
             Write-Host "klc_compile.au3 exit code: $($proc.ExitCode)"
             if ($proc.ExitCode -ne 0) { exit $proc.ExitCode }
+            Start-Sleep -Seconds 2
           }
-          Write-Host "All folders processed. Starting 60s sleep..."
-          Start-Sleep -Seconds 60
-          Write-Host "Sleep complete. Workspace contents:"
-          foreach ($folder in $folders) {
-            $workspace = "C:\$($folder.Name)"
-            Write-Host "--- $workspace ---"
-            Get-ChildItem $workspace -ErrorAction SilentlyContinue |
-              ForEach-Object { Write-Host "  $($_.Name) ($($_.Length) bytes)" }
-          }
+          Start-Sleep -Seconds 15
 
       - name: Package keyboards
         shell: pwsh
@@ -128,11 +90,19 @@ jobs:
             Where-Object { $excluded -notcontains $_.Name }
           New-Item -ItemType Directory -Force -Path C:\release | Out-Null
           foreach ($folder in $folders) {
-            $workspace = "C:\workspace\$($folder.Name)"
-            if (-not (Test-Path $workspace)) { continue }
+            $folder_workspace = "C:\workspace\$($folder.Name)"
+            if (-not (Test-Path $folder_workspace)) {
+              Write-Error "Expected workspace folder $folder_workspace not found"
+              exit 1
+            }
+            $setup = "$folder_workspace\setup.exe"
+            if (-not (Test-Path $setup)) {
+              Write-Error "Expected setup.exe not found in $folder_workspace"
+              exit 1
+            }
             $dest = "C:\release\$($folder.Name)"
             New-Item -ItemType Directory -Force -Path $dest | Out-Null
-            Copy-Item -Path "$workspace\setup.exe" -Destination $dest
+            Copy-Item -Path $setup -Destination $dest
           }
           Compress-Archive -Path C:\release\* -DestinationPath C:\keyboards.zip
 

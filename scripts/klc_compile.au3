@@ -9,6 +9,13 @@ Const $EXIT_VERIFICATION_FAILED = 6
 Const $EXIT_BUILD_FAILED = 7
 Const $EXIT_MOVE_FAILED = 8
 
+Func ExitIfError($msg, $code = 1)
+    If @error Then
+        ConsoleWriteError($msg & @CRLF)
+        Exit $code
+    EndIf
+EndFunc
+
 If Not $CmdLine[0] = 3 Then Exit $EXIT_USAGE_ERROR
 
 Local $exe_location = $CmdLine[1]
