@@ -58,7 +58,7 @@ EndFunc
 ; Wait for the main program window to show up
 Local $main_wnd = WinWaitActive("Keyboard Layout Creator 1.4", "", $TIMEOUT)
 If $main_wnd = 0 Then Exit $EXIT_TIMEOUT_MAIN_WND
-Sleep($POST_ACTIVE_WAIT_MS)
+Sleep(10000)
 
 ; Wait for open dialog to appear
 WinActivate($main_wnd)
