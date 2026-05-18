@@ -18,14 +18,17 @@ Const $EXIT_TIMEOUT_MAIN_AFTER_VERIFY = 15
 Const $EXIT_TIMEOUT_BUILD_INACTIVE = 16
 Const $EXIT_TIMEOUT_BUILD_DIALOG = 17
 
+Const $POST_ACTIVE_WAIT_MS = 2000
+
 Const $TIMEOUT = 60
 Const $dialog_id = "[CLASS:#32770]"
 
-If Not $CmdLine[0] = 3 Then Exit $EXIT_USAGE_ERROR
+If Not $CmdLine[0] = 4 Then Exit $EXIT_USAGE_ERROR
 
 Local $exe_location = $CmdLine[1]
 Local $klc_to_compile = $CmdLine[2]
 Local $workspace = $CmdLine[3]
+Local $output_name = $CmdLine[4]
 
 ; Read the keyboard short name from the first line of the KLC file (KBD<TAB><name><TAB>"<title>")
 Local $klc_file = FileOpen($klc_to_compile, 0)
@@ -41,7 +44,7 @@ Local $msklc_output = @MyDocumentsDir & "\" & $kbd_name
 If FileExists($msklc_output) Then Exit $EXIT_OUTPUT_EXISTS
 
 ; Destination in the workspace must also not already exist
-Local $workspace_dest = $workspace & "\" & $kbd_name
+Local $workspace_dest = $workspace & "\" & $output_name
 If FileExists($workspace_dest) Then Exit $EXIT_DEST_EXISTS
 
 Local $msklc_pid = RunFromLocalFolder($exe_location)
@@ -52,34 +55,44 @@ Func Cleanup()
     DirRemove($msklc_output, 1)
 EndFunc
 
+; Wait for the main program window to show up
 Local $main_wnd = WinWaitActive("Keyboard Layout Creator 1.4", "", $TIMEOUT)
 If $main_wnd = 0 Then Exit $EXIT_TIMEOUT_MAIN_WND
-Sleep(2000)
+Sleep($POST_ACTIVE_WAIT_MS)
 
-; Open the KLC file
+; Wait for open dialog to appear
 ControlSend($main_wnd, "", "", "^o")
 If WinWaitNotActive($main_wnd, "", $TIMEOUT) = 0 Then Exit $EXIT_TIMEOUT_OPEN_INACTIVE
 If WinWaitActive($dialog_id, "", $TIMEOUT) = 0 Then Exit $EXIT_TIMEOUT_OPEN_DIALOG
-Sleep(2000)
+Sleep($POST_ACTIVE_WAIT_MS)
+
+; Actually open the klc file
 ControlSetText($dialog_id, "", "[CLASS:Edit; INSTANCE:1]", $klc_to_compile)
 ControlSend($dialog_id, "", "", "{ENTER}")
 If WinWaitActive($main_wnd, "", $TIMEOUT) = 0 Then Exit $EXIT_TIMEOUT_MAIN_AFTER_OPEN
-Sleep(2000)
+Sleep($POST_ACTIVE_WAIT_MS)
 
-; Build and verify
+; Build and wait for next dialog about 
 ControlSend($main_wnd, "", "", "!p")
 ControlSend($main_wnd, "", "", "b")
 If WinWaitNotActive($main_wnd, "", $TIMEOUT) = 0 Then Exit $EXIT_TIMEOUT_VERIFY_INACTIVE
 If WinWaitActive($dialog_id, "", $TIMEOUT) = 0 Then Exit $EXIT_TIMEOUT_VERIFY_DIALOG
-Sleep(2000)
-If Not StringInStr(WinGetText($dialog_id), "Verification succeeded,") Then Exit $EXIT_VERIFICATION_FAILED
-ControlClick($dialog_id, "", "[CLASS:Button; INSTANCE:2]")
+Sleep($POST_ACTIVE_WAIT_MS)
+
+Local $dialog_text = WinGetText($dialog_id)
+If Not StringInStr($dialog_text, "Verification succeeded") Then Exit $EXIT_VERIFICATION_FAILED
+If StringInStr($dialog_text, "warning") Then
+    ControlClick($dialog_id, "", "[CLASS:Button; INSTANCE:2]")
+Else
+    ControlClick($dialog_id, "", "[CLASS:Button; INSTANCE:1]")
+End
 If WinWaitActive($main_wnd, "", $TIMEOUT) = 0 Then Exit $EXIT_TIMEOUT_MAIN_AFTER_VERIFY
-Sleep(2000)
+Sleep($POST_ACTIVE_WAIT_MS)
 
 If WinWaitNotActive($main_wnd, "", $TIMEOUT) = 0 Then Exit $EXIT_TIMEOUT_BUILD_INACTIVE
 If WinWaitActive($dialog_id, "", $TIMEOUT) = 0 Then Exit $EXIT_TIMEOUT_BUILD_DIALOG
-Sleep(2000)
+Sleep($POST_ACTIVE_WAIT_MS)
+
 If Not StringInStr(WinGetText($dialog_id), "The Windows Installer package was built successfully at") Then Exit $EXIT_BUILD_FAILED
 ControlSend($dialog_id, "", "", "n")
 

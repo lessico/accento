@@ -15,14 +15,21 @@ jobs:
     runs-on: windows-latest
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - name: Enforce tag ref
+        if: github.ref_type != 'tag'
+        shell: pwsh
+        run: |
+          Write-Host "::error::This workflow can only be run against a tag. Got ref_type=${{ github.ref_type }}, ref=${{ github.ref }}"
+          exit 1
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: arn:aws:iam::881490118399:role/accento
           aws-region: us-east-1
+
+      - name: Checkout
+        uses: actions/checkout@v4
 
       - name: Download tools from S3
         shell: pwsh
@@ -74,7 +81,7 @@ jobs:
             }
             Write-Host "Compiling $($folder.Name)"
             $proc = Start-Process -FilePath $autoit `
-              -ArgumentList @("${{ github.workspace }}\scripts\klc_compile.au3", "C:\msklc\MSKLC.exe", $klc, $workspace) `
+              -ArgumentList @("${{ github.workspace }}\scripts\klc_compile.au3", "C:\msklc\MSKLC.exe", $klc, $workspace, $folder.Name) `
               -Wait -PassThru -NoNewWindow
             Write-Host "klc_compile.au3 exit code: $($proc.ExitCode)"
             if ($proc.ExitCode -ne 0) { exit $proc.ExitCode }
