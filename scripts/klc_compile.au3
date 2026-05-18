@@ -20,7 +20,7 @@ Const $EXIT_TIMEOUT_BUILD_DIALOG = 17
 
 Const $POST_ACTIVE_WAIT_MS = 3000
 
-Const $TIMEOUT = 15
+Const $TIMEOUT = 60
 Const $dialog_id = "[CLASS:#32770]"
 
 If Not $CmdLine[0] = 4 Then Exit $EXIT_USAGE_ERROR
@@ -59,28 +59,27 @@ EndFunc
 Local $main_wnd = WinWaitActive("Keyboard Layout Creator 1.4", "", $TIMEOUT)
 If $main_wnd = 0 Then Exit $EXIT_TIMEOUT_MAIN_WND
 Sleep($POST_ACTIVE_WAIT_MS)
-WinActivate($main_wnd)
 
 ; Wait for open dialog to appear
+WinActivate($main_wnd)
 ControlSend($main_wnd, "", "", "^o")
+If WinWaitNotActive($main_wnd, "", $TIMEOUT) = 0 Then Exit $EXIT_TIMEOUT_OPEN_INACTIVE
 If WinWaitActive($dialog_id, "", $TIMEOUT) = 0 Then Exit $EXIT_TIMEOUT_OPEN_DIALOG
 Sleep($POST_ACTIVE_WAIT_MS)
-WinActivate($dialog_id)
 
 ; Actually open the klc file
 ControlSetText($dialog_id, "", "[CLASS:Edit; INSTANCE:1]", $klc_to_compile)
 ControlSend($dialog_id, "", "", "{ENTER}")
 If WinWaitActive($main_wnd, "", $TIMEOUT) = 0 Then Exit $EXIT_TIMEOUT_MAIN_AFTER_OPEN
 Sleep($POST_ACTIVE_WAIT_MS)
-WinActivate($main_wnd)
 
 ; Build and wait for next dialog about 
+WinActivate($main_wnd)
 ControlSend($main_wnd, "", "", "!p")
 ControlSend($main_wnd, "", "", "b")
 If WinWaitNotActive($main_wnd, "", $TIMEOUT) = 0 Then Exit $EXIT_TIMEOUT_VERIFY_INACTIVE
 If WinWaitActive($dialog_id, "", $TIMEOUT) = 0 Then Exit $EXIT_TIMEOUT_VERIFY_DIALOG
 Sleep($POST_ACTIVE_WAIT_MS)
-WinActivate($dialog_id)
 
 Local $dialog_text = WinGetText($dialog_id)
 If Not StringInStr($dialog_text, "Verification succeeded") Then Exit $EXIT_VERIFICATION_FAILED
