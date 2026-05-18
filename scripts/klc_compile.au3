@@ -18,7 +18,7 @@ Const $EXIT_TIMEOUT_MAIN_AFTER_VERIFY = 15
 Const $EXIT_TIMEOUT_BUILD_INACTIVE = 16
 Const $EXIT_TIMEOUT_BUILD_DIALOG = 17
 
-Const $POST_ACTIVE_WAIT_MS = 2000
+Const $POST_ACTIVE_WAIT_MS = 3000
 
 Const $TIMEOUT = 60
 Const $dialog_id = "[CLASS:#32770]"
@@ -59,6 +59,12 @@ EndFunc
 Local $main_wnd = WinWaitActive("Keyboard Layout Creator 1.4", "", $TIMEOUT)
 If $main_wnd = 0 Then Exit $EXIT_TIMEOUT_MAIN_WND
 Sleep($POST_ACTIVE_WAIT_MS)
+
+; Dismiss any startup dialog before opening a file
+If WinExists($dialog_id) Then
+    ControlSend($dialog_id, "", "", "{ESCAPE}")
+    WinWaitClose($dialog_id, "", $TIMEOUT)
+EndIf
 
 ; Wait for open dialog to appear
 ControlSend($main_wnd, "", "", "^o")
