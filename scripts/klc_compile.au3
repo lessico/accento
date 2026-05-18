@@ -18,7 +18,7 @@ Const $EXIT_TIMEOUT_MAIN_AFTER_VERIFY = 15
 Const $EXIT_TIMEOUT_BUILD_INACTIVE = 16
 Const $EXIT_TIMEOUT_BUILD_DIALOG = 17
 
-Const $POST_ACTIVE_WAIT_MS = 3000
+Const $POST_ACTIVE_WAIT_MS = 2000
 
 Const $TIMEOUT = 60
 Const $dialog_id = "[CLASS:#32770]"
@@ -58,10 +58,9 @@ EndFunc
 ; Wait for the main program window to show up
 Local $main_wnd = WinWaitActive("Keyboard Layout Creator 1.4", "", $TIMEOUT)
 If $main_wnd = 0 Then Exit $EXIT_TIMEOUT_MAIN_WND
-Sleep(10000)
+Sleep($POST_ACTIVE_WAIT_MS)
 
 ; Wait for open dialog to appear
-WinActivate($main_wnd)
 ControlSend($main_wnd, "", "", "^o")
 If WinWaitNotActive($main_wnd, "", $TIMEOUT) = 0 Then Exit $EXIT_TIMEOUT_OPEN_INACTIVE
 If WinWaitActive($dialog_id, "", $TIMEOUT) = 0 Then Exit $EXIT_TIMEOUT_OPEN_DIALOG
@@ -73,8 +72,7 @@ ControlSend($dialog_id, "", "", "{ENTER}")
 If WinWaitActive($main_wnd, "", $TIMEOUT) = 0 Then Exit $EXIT_TIMEOUT_MAIN_AFTER_OPEN
 Sleep($POST_ACTIVE_WAIT_MS)
 
-; Build and wait for next dialog about 
-WinActivate($main_wnd)
+; Build and wait for next dialog about the result of building.
 ControlSend($main_wnd, "", "", "!p")
 ControlSend($main_wnd, "", "", "b")
 If WinWaitNotActive($main_wnd, "", $TIMEOUT) = 0 Then Exit $EXIT_TIMEOUT_VERIFY_INACTIVE
