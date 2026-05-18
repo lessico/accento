@@ -85,7 +85,7 @@ If StringInStr($dialog_text, "warning") Then
     ControlClick($dialog_id, "", "[CLASS:Button; INSTANCE:2]")
 Else
     ControlClick($dialog_id, "", "[CLASS:Button; INSTANCE:1]")
-End
+EndIf
 If WinWaitActive($main_wnd, "", $TIMEOUT) = 0 Then Exit $EXIT_TIMEOUT_MAIN_AFTER_VERIFY
 Sleep($POST_ACTIVE_WAIT_MS)
 
