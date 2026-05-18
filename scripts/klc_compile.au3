@@ -63,7 +63,6 @@ WinActivate($main_wnd)
 
 ; Wait for open dialog to appear
 ControlSend($main_wnd, "", "", "^o")
-If WinWaitNotActive($main_wnd, "", $TIMEOUT) = 0 Then Exit $EXIT_TIMEOUT_OPEN_INACTIVE
 If WinWaitActive($dialog_id, "", $TIMEOUT) = 0 Then Exit $EXIT_TIMEOUT_OPEN_DIALOG
 Sleep($POST_ACTIVE_WAIT_MS)
 WinActivate($dialog_id)
