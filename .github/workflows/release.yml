@@ -1,9 +1,6 @@
 name: Build and Release Keyboards
 
 on:
-  push:
-    tags:
-      - '*'
   workflow_dispatch:
 
 permissions:
@@ -12,7 +9,7 @@ permissions:
 
 jobs:
   build:
-    runs-on: windows-latest
+    runs-on: windows-
 
     steps:
       - name: Enforce tag ref
@@ -23,13 +20,13 @@ jobs:
           exit 1
 
       - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
+        uses: aws-actions/configure-aws-credentials@v6
         with:
           role-to-assume: arn:aws:iam::881490118399:role/accento
           aws-region: us-east-1
 
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Download tools from S3
         shell: pwsh

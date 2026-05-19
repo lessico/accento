@@ -19,8 +19,9 @@ Const $EXIT_TIMEOUT_BUILD_INACTIVE = 16
 Const $EXIT_TIMEOUT_BUILD_DIALOG = 17
 
 Const $POST_ACTIVE_WAIT_MS = 3000
-
 Const $TIMEOUT = 60
+Const $OPEN_ATTEMPTS = 6
+
 Const $dialog_id = "[CLASS:#32770]"
 
 If Not $CmdLine[0] = 4 Then Exit $EXIT_USAGE_ERROR
@@ -60,17 +61,11 @@ Local $main_wnd = WinWaitActive("Keyboard Layout Creator 1.4", "", $TIMEOUT)
 If $main_wnd = 0 Then Exit $EXIT_TIMEOUT_MAIN_WND
 Sleep($POST_ACTIVE_WAIT_MS)
 
-; Dismiss any startup dialog before opening a file
-;If WinExists($dialog_id) Then
-;   ControlSend($dialog_id, "", "", "{ESCAPE}")
-;   WinWaitClose($dialog_id, "", $TIMEOUT)
-;EndIf
-
-; Send ^o and wait for the open dialog, retrying up to 6 times with 10s timeouts
+; Send ^o and wait for the open dialog, retrying up to 6 times within the full timeout period
 Local $open_dialog_found = False
-For $i = 1 To 6
+For $i = 1 To $OPEN_ATTEMPTS
     ControlSend($main_wnd, "", "", "^o")
-    If WinWaitNotActive($main_wnd, "", 10) <> 0 Then
+    If WinWaitNotActive($main_wnd, "", $TIMEOUT / $OPEN_ATTEMPTS) <> 0 Then
         $open_dialog_found = True
         ExitLoop
     EndIf
