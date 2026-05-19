@@ -61,10 +61,10 @@ If $main_wnd = 0 Then Exit $EXIT_TIMEOUT_MAIN_WND
 Sleep($POST_ACTIVE_WAIT_MS)
 
 ; Dismiss any startup dialog before opening a file
-If WinExists($dialog_id) Then
-    ControlSend($dialog_id, "", "", "{ESCAPE}")
-    WinWaitClose($dialog_id, "", $TIMEOUT)
-EndIf
+;If WinExists($dialog_id) Then
+;   ControlSend($dialog_id, "", "", "{ESCAPE}")
+;   WinWaitClose($dialog_id, "", $TIMEOUT)
+;EndIf
 
 ; Send ^o and wait for the open dialog, retrying up to 6 times with 10s timeouts
 Local $open_dialog_found = False
