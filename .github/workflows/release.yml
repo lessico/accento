@@ -19,7 +19,7 @@ jobs:
 
     steps:
       - name: Enforce tag ref
-        if: github.ref_type != 'tag' && ${{ !inputs.dryrun }}
+        if: github.ref_type != 'tag' && !inputs.dryrun
         shell: pwsh
         run: |
           Write-Host "::error::This workflow can only be run against a tag or it must a dry run. Got ref_type=${{ github.ref_type }}, ref=${{ github.ref }}, dryrun=${{ inputs.dryrun }}"
