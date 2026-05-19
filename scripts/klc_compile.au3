@@ -66,9 +66,16 @@ If WinExists($dialog_id) Then
     WinWaitClose($dialog_id, "", $TIMEOUT)
 EndIf
 
-; Wait for open dialog to appear
-ControlSend($main_wnd, "", "", "^o")
-If WinWaitNotActive($main_wnd, "", $TIMEOUT) = 0 Then Exit $EXIT_TIMEOUT_OPEN_INACTIVE
+; Send ^o and wait for the open dialog, retrying up to 6 times with 10s timeouts
+Local $open_dialog_found = False
+For $i = 1 To 6
+    ControlSend($main_wnd, "", "", "^o")
+    If WinWaitNotActive($main_wnd, "", 10) <> 0 Then
+        $open_dialog_found = True
+        ExitLoop
+    EndIf
+Next
+If Not $open_dialog_found Then Exit $EXIT_TIMEOUT_OPEN_INACTIVE
 If WinWaitActive($dialog_id, "", $TIMEOUT) = 0 Then Exit $EXIT_TIMEOUT_OPEN_DIALOG
 Sleep($POST_ACTIVE_WAIT_MS)
 
