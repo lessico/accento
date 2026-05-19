@@ -1,95 +1,109 @@
 #include "shared.au3"
 
-If Not $CmdLine[0] = 3 Then Exit 10
+Const $EXIT_USAGE_ERROR = 1
+Const $EXIT_KLC_OPEN_ERROR = 2
+Const $EXIT_KLC_FORMAT_ERROR = 3
+Const $EXIT_OUTPUT_EXISTS = 4
+Const $EXIT_DEST_EXISTS = 5
+Const $EXIT_VERIFICATION_FAILED = 6
+Const $EXIT_BUILD_FAILED = 7
+Const $EXIT_MOVE_FAILED = 8
+Const $EXIT_TIMEOUT_MAIN_WND = 9
+Const $EXIT_TIMEOUT_OPEN_INACTIVE = 10
+Const $EXIT_TIMEOUT_OPEN_DIALOG = 11
+Const $EXIT_TIMEOUT_MAIN_AFTER_OPEN = 12
+Const $EXIT_TIMEOUT_VERIFY_INACTIVE = 13
+Const $EXIT_TIMEOUT_VERIFY_DIALOG = 14
+Const $EXIT_TIMEOUT_MAIN_AFTER_VERIFY = 15
+Const $EXIT_TIMEOUT_BUILD_INACTIVE = 16
+Const $EXIT_TIMEOUT_BUILD_DIALOG = 17
+
+Const $POST_ACTIVE_WAIT_MS = 3000
+Const $TIMEOUT = 60
+Const $OPEN_ATTEMPTS = 6
+
+Const $dialog_id = "[CLASS:#32770]"
+
+If Not $CmdLine[0] = 4 Then Exit $EXIT_USAGE_ERROR
+
 Local $exe_location = $CmdLine[1]
 Local $klc_to_compile = $CmdLine[2]
-Local $rooted_workspace = $CmdLine[3]
+Local $workspace = $CmdLine[3]
+Local $output_name = $CmdLine[4]
 
-If Not StringInStr($rooted_workspace, ":\") = 2 Then Exit 11
-ExitIfError("Invalid arguments given to StringInStr for parsing rooted workspace.", 2)
-If Not StringInStr($rooted_workspace, "\", 0, 1, 4) = 0 Then Exit 12
-ExitIfError("Invalid arguments given to StringInStr for parsing rooted workspace.", 2)
-Local $drive_letter = StringLeft($rooted_workspace, 1)
-Local $workspace = StringMid($rooted_workspace, 4)
+; Read the keyboard short name from the first line of the KLC file (KBD<TAB><name><TAB>"<title>")
+Local $klc_file = FileOpen($klc_to_compile, 0)
+If $klc_file = -1 Then Exit $EXIT_KLC_OPEN_ERROR
+Local $first_line = FileReadLine($klc_file)
+FileClose($klc_file)
+Local $parts = StringSplit($first_line, @TAB)
+If $parts[0] < 3 Then Exit $EXIT_KLC_FORMAT_ERROR
+Local $kbd_name = $parts[2]
 
-; Start the program and get a handle to the main window
+; MSKLC outputs to @MyDocumentsDir\<kbd_name> — ensure it does not already exist
+Local $msklc_output = @MyDocumentsDir & "\" & $kbd_name
+If FileExists($msklc_output) Then Exit $EXIT_OUTPUT_EXISTS
+
+; Destination in the workspace must also not already exist
+Local $workspace_dest = $workspace & "\" & $output_name
+If FileExists($workspace_dest) Then Exit $EXIT_DEST_EXISTS
+
 Local $msklc_pid = RunFromLocalFolder($exe_location)
 OnAutoItExitRegister("Cleanup")
 
 Func Cleanup()
     ProcessClose($msklc_pid)
+    DirRemove($msklc_output, 1)
 EndFunc
 
-Local $main_wnd = WinWaitActive("Keyboard Layout Creator 1.4")
-Const $dialog_id = "[CLASS:#32770]"
+; Wait for the main program window to show up
+Local $main_wnd = WinWaitActive("Keyboard Layout Creator 1.4", "", $TIMEOUT)
+If $main_wnd = 0 Then Exit $EXIT_TIMEOUT_MAIN_WND
+Sleep($POST_ACTIVE_WAIT_MS)
 
-Func WaitForDialog()
-    WinWaitNotActive($main_wnd)
-    WinWaitActive($dialog_id)
-EndFunc
+; Send ^o and wait for the open dialog, retrying up to 6 times within the full timeout period
+Local $open_dialog_found = False
+For $i = 1 To $OPEN_ATTEMPTS
+    ControlSend($main_wnd, "", "", "^o")
+    If WinWaitNotActive($main_wnd, "", $TIMEOUT / $OPEN_ATTEMPTS) <> 0 Then
+        $open_dialog_found = True
+        ExitLoop
+    EndIf
+Next
+If Not $open_dialog_found Then Exit $EXIT_TIMEOUT_OPEN_INACTIVE
+If WinWaitActive($dialog_id, "", $TIMEOUT) = 0 Then Exit $EXIT_TIMEOUT_OPEN_DIALOG
+Sleep($POST_ACTIVE_WAIT_MS)
 
-; Set the working directory for the compilation output
-If Not FileExists($rooted_workspace) Then
-    If Not DirCreate($rooted_workspace) Then Exit 13
-EndIf
-
-Func GetControlViewIndex($prefix, $target)
-    Local $i = 0
-    While True
-        Sleep(500)
-        Local $item = ControlTreeView($dialog_id, "", "[CLASS:SysTreeView32; INSTANCE:1]", "GetText", $prefix & "|#" & $i)
-        If @error Then ExitLoop
-        If StringInStr($item, $target) Then
-            Return $i
-        EndIf
-        $i += 1
-    WEnd
-    Return -1
-EndFunc
-
-ControlClick($main_wnd, "", "[NAME:btnCurDir]")
-WaitForDialog()
-Local $this_pc_idx = GetControlViewIndex("#0", "This PC")
-If $this_pc_idx = -1 Then Exit 14
-ControlTreeView($dialog_id, "", "[CLASS:SysTreeView32; INSTANCE:1]", "Expand", "#0|#" & $this_pc_idx)
-ExitIfError("Could not expand 'This PC' node.", 3)
-Sleep(500)
-
-Local $drive_idx = GetControlViewIndex("#0|#" & $this_pc_idx, "(" & $drive_letter & ":)")
-If $drive_idx = -1 Then Exit 15
-ControlTreeView($dialog_id, "", "[CLASS:SysTreeView32; INSTANCE:1]", "Expand", "#0|#" & $this_pc_idx & "|#" & $drive_idx)
-ExitIfError("Could not expand drive within 'This PC' node.", 4)
-Sleep(500)
-
-Local $workspace_idx = GetControlViewIndex("#0|#" & $this_pc_idx & "|#" & $drive_idx, $workspace)
-If $workspace_idx = -1 Then Exit 16
-ControlTreeView($dialog_id, "", "[CLASS:SysTreeView32; INSTANCE:1]", "Select", "#0|#" & $this_pc_idx & "|#" & $drive_idx & "|#" & $workspace_idx)
-ExitIfError("Could not select the workspace directory"5, )
-Sleep(500)
-
-ControlClick($dialog_id, "", "[CLASS:Button; INSTANCE:2]")
-WinWaitActive($main_wnd)
-
-; Open up the file that is being compiled
-ControlSend($main_wnd, "", "", "^o")
-WaitForDialog()
+; Actually open the klc file
 ControlSetText($dialog_id, "", "[CLASS:Edit; INSTANCE:1]", $klc_to_compile)
 ControlSend($dialog_id, "", "", "{ENTER}")
-WinWaitActive($main_wnd)
+If WinWaitActive($main_wnd, "", $TIMEOUT) = 0 Then Exit $EXIT_TIMEOUT_MAIN_AFTER_OPEN
+Sleep($POST_ACTIVE_WAIT_MS)
 
-; Build the file that has been loaded and clear out the verification window
+; Build and wait for next dialog about the result of building.
 ControlSend($main_wnd, "", "", "!p")
 ControlSend($main_wnd, "", "", "b")
-WaitForDialog()
-Local $verification_text = WinGetText($dialog_id)
-Local $expected_verification_text = "Verification succeeded."
-If Not StringInStr($verification_text, $expected_verification_text) Then Exit 17
-ControlClick($dialog_id, "", "[CLASS:Button; INSTANCE:1]")
-WinWaitActive($main_wnd)
+If WinWaitNotActive($main_wnd, "", $TIMEOUT) = 0 Then Exit $EXIT_TIMEOUT_VERIFY_INACTIVE
+If WinWaitActive($dialog_id, "", $TIMEOUT) = 0 Then Exit $EXIT_TIMEOUT_VERIFY_DIALOG
+Sleep($POST_ACTIVE_WAIT_MS)
 
-; Check if the build is quoted as successful and clear out the build result window
-WaitForDialog()
-Local $build_text = WinGetText($dialog_id)
-Local $expected_build_text = "The Windows Installer package was built successfully at"
-If Not StringInStr($build_text, $expected_build_text) Then Exit 18
+Local $dialog_text = WinGetText($dialog_id)
+If Not StringInStr($dialog_text, "Verification succeeded") Then Exit $EXIT_VERIFICATION_FAILED
+If StringInStr($dialog_text, "warning") Then
+    ControlClick($dialog_id, "", "[CLASS:Button; INSTANCE:2]")
+Else
+    ControlClick($dialog_id, "", "[CLASS:Button; INSTANCE:1]")
+EndIf
+If WinWaitActive($main_wnd, "", $TIMEOUT) = 0 Then Exit $EXIT_TIMEOUT_MAIN_AFTER_VERIFY
+Sleep($POST_ACTIVE_WAIT_MS)
+
+If WinWaitNotActive($main_wnd, "", $TIMEOUT) = 0 Then Exit $EXIT_TIMEOUT_BUILD_INACTIVE
+If WinWaitActive($dialog_id, "", $TIMEOUT) = 0 Then Exit $EXIT_TIMEOUT_BUILD_DIALOG
+Sleep($POST_ACTIVE_WAIT_MS)
+
+If Not StringInStr(WinGetText($dialog_id), "The Windows Installer package was built successfully at") Then Exit $EXIT_BUILD_FAILED
 ControlSend($dialog_id, "", "", "n")
+
+; Move the build output folder from Documents to the workspace
+Sleep(1000)
+If Not DirMove($msklc_output, $workspace_dest) Then Exit $EXIT_MOVE_FAILED
