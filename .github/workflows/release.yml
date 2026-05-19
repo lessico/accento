@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       dryrun:
-        description: 'If true the final release step will just upload the final artifact rather than creating a release.'
+        description: 'Dry Run: if set create the release artifact but do not create a release.'
         required: true
         default: false
         type: boolean
