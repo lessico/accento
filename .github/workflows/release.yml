@@ -2,6 +2,12 @@ name: Build and Release Keyboards
 
 on:
   workflow_dispatch:
+    inputs:
+      dryrun:
+        description: 'If true the final release step will just upload the final artifact rather than creating a release.'
+        required: true
+        default: false
+        type: boolean
 
 permissions:
   id-token: write
@@ -111,7 +117,15 @@ jobs:
           }
           Compress-Archive -Path C:\release\* -DestinationPath C:\keyboards.zip
 
+      - name: Upload artifact (dryrun)
+        if: ${{ inputs.dryrun }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: keyboards
+          path: C:\keyboards.zip
+
       - name: Create GitHub release
+        if: ${{ !inputs.dryrun }}
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
